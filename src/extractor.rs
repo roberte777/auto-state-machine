@@ -5,7 +5,7 @@ use crate::context::AutoClientContext;
 pub struct TickRate(pub Duration);
 impl FromContext for TickRate {
     fn from_context(context: &AutoClientContext) -> Self {
-        Self(Duration::from_millis(context.tick_rate as u64))
+        Self(context.tick_rate)
     }
 }
 

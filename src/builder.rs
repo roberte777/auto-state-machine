@@ -53,11 +53,11 @@ impl AutoClientBuilder {
 }
 #[cfg(test)]
 mod tests {
-    fn test1(context: AutoClientContext) -> String {
+    fn test1(_: AutoClientContext) -> String {
         println!("test1");
         "test2".to_string()
     }
-    fn test2(context: AutoClientContext, TickRate(r): TickRate) -> String {
+    fn test2(_: AutoClientContext, TickRate(r): TickRate) -> String {
         println!("TickRate: {:?}", r);
         "test".to_string()
     }

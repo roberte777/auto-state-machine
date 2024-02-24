@@ -1,10 +1,12 @@
+use std::time::Duration;
+
 use crate::extractor::FromContext;
 
 // S is for user context (state)
 // E is for States
 #[derive(Clone)]
 pub struct AutoClientContext {
-    pub tick_rate: u32,
+    pub tick_rate: Duration,
     pub current_state: String,
     pub initial_state: String,
 }

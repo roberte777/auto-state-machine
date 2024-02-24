@@ -23,7 +23,7 @@ impl AutoClient {
             handlers,
             tick_rate,
             context: AutoClientContext {
-                tick_rate: tick_rate.as_millis() as u32,
+                tick_rate,
                 current_state: initial_state.clone(),
                 initial_state,
             },
