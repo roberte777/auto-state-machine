@@ -1,4 +1,4 @@
-use std::time::Duration;
+use crate::extractor::FromContext;
 
 // S is for user context (state)
 // E is for States
@@ -13,16 +13,8 @@ impl FromContext for AutoClientContext {
         context.clone()
     }
 }
-pub struct TickRate(pub Duration);
-impl FromContext for TickRate {
-    fn from_context(context: &AutoClientContext) -> Self {
-        Self(Duration::from_millis(context.tick_rate as u64))
-    }
-}
 
-pub trait FromContext {
-    fn from_context(context: &AutoClientContext) -> Self;
-}
+/// Wrapper type for erasure. T is the generic function arguments for F
 pub struct Wrapper<T, F> {
     pub f: F,
     pub marker: std::marker::PhantomData<T>,

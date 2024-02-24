@@ -1,4 +1,5 @@
-use crate::context::{Callback, FromContext, Wrapper};
+use crate::context::{Callback, Wrapper};
+use crate::extractor::FromContext;
 pub trait IntoCallback<Input> {
     type Callback: Callback;
 
