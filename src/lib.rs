@@ -1,27 +1,25 @@
 pub mod context;
+pub mod mymacro;
 use std::{collections::HashMap, time::Duration};
 
-use crate::context::{AutoClientContext, Callbacks, FromContext};
+use context::StoredCallback;
+use mymacro::IntoCallback;
 
-pub struct AutoClientBuilder<T> {
-    handlers: Option<HashMap<String, Box<dyn Callbacks<T>>>>,
+use crate::context::{AutoClientContext, Callback};
+
+pub struct AutoClientBuilder {
+    handlers: Option<HashMap<String, StoredCallback>>,
     tick_rate: Duration,
     initial_state: Option<String>,
 }
 
-impl<T> Default for AutoClientBuilder<T>
-where
-    T: FromContext,
-{
+impl Default for AutoClientBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> AutoClientBuilder<T>
-where
-    T: FromContext,
-{
+impl AutoClientBuilder {
     pub fn new() -> Self {
         Self {
             initial_state: None,
@@ -30,13 +28,13 @@ where
         }
     }
 
-    pub fn add_state<F>(self, name: String, f: F) -> Self
-    where
-        F: 'static + Callbacks<T> + Sized,
-    {
-        let handler: Box<dyn Callbacks<T>> = Box::new(f);
+    pub fn add_state<I, C: Callback + 'static>(
+        self,
+        name: String,
+        f: impl IntoCallback<I, Callback = C>,
+    ) -> Self {
         let mut handlers = self.handlers.unwrap_or_default();
-        handlers.insert(name, handler);
+        handlers.insert(name, Box::new(f.into_callback()));
         Self {
             handlers: Some(handlers),
             ..self
@@ -50,23 +48,20 @@ where
         self.initial_state = Some(initial_state);
         self
     }
-    pub fn build(self) -> AutoClient<T> {
+    pub fn build(self) -> AutoClient {
         let handlers = self.handlers.unwrap();
         let initial_state = self.initial_state.unwrap();
         AutoClient::new(handlers, self.tick_rate, initial_state)
     }
 }
-pub struct AutoClient<T> {
-    handlers: HashMap<String, Box<dyn Callbacks<T>>>,
+pub struct AutoClient {
+    handlers: HashMap<String, StoredCallback>,
     tick_rate: Duration,
     context: AutoClientContext,
 }
-impl<T> AutoClient<T>
-where
-    T: FromContext,
-{
+impl AutoClient {
     pub fn new(
-        handlers: HashMap<String, Box<dyn Callbacks<T>>>,
+        handlers: HashMap<String, StoredCallback>,
         tick_rate: Duration,
         initial_state: String,
     ) -> Self {
@@ -92,14 +87,22 @@ where
 }
 #[cfg(test)]
 mod tests {
+    fn test1(context: AutoClientContext) -> String {
+        println!("test1");
+        "test2".to_string()
+    }
+    fn test2(context: AutoClientContext, TickRate(r): TickRate) -> String {
+        println!("TickRate: {:?}", r);
+        "test".to_string()
+    }
+    use crate::context::TickRate;
+
     use super::*;
     #[test]
     fn test() {
         let mut client = AutoClientBuilder::new()
-            .add_state(
-                "test".to_string(),
-                Box::new(|context: AutoClientContext| context.current_state.clone()),
-            )
+            .add_state("test".to_string(), test1)
+            .add_state("test2".to_string(), test2)
             .initial_state("test".to_string())
             .build();
         client.run();
