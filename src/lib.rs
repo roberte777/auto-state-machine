@@ -29,7 +29,7 @@ impl AutoClient {
             },
         }
     }
-    pub fn run(&mut self) {
+    pub fn run_blocking(&mut self) {
         loop {
             let handler = self.handlers.get(&self.context.current_state).unwrap();
             let output = handler.call(&self.context);
@@ -37,5 +37,8 @@ impl AutoClient {
             self.context.current_state = output;
             std::thread::sleep(self.tick_rate);
         }
+    }
+    pub fn run(&mut self) {
+        todo!()
     }
 }
