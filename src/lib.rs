@@ -100,6 +100,7 @@ mod tests {
                 "test".to_string(),
                 Box::new(|context: AutoClientContext| context.current_state.clone()),
             )
+            .initial_state("test".to_string())
             .build();
         client.run();
     }
