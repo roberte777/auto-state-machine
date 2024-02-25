@@ -4,55 +4,32 @@ use crate::mymacro::IntoCallback;
 use crate::AutoClient;
 
 use crate::context::{Callback, StoredCallback};
-pub struct AutoClientBuilder<S = ()> {
-    handlers: Option<HashMap<String, StoredCallback<S>>>,
+pub struct AutoClientBuilder<S> {
+    handlers: HashMap<String, StoredCallback<S>>,
     tick_rate: Duration,
     initial_state: Option<String>,
     user_context: S,
 }
 
-impl AutoClientBuilder<()> {
-    pub fn new() -> Self {
+impl<S> AutoClientBuilder<S>
+where
+    S: Clone + Send + Sync,
+{
+    pub fn new(user_context: S) -> Self {
         Self {
-            handlers: None,
+            handlers: HashMap::new(),
             tick_rate: Duration::from_millis(50),
             initial_state: None,
-            user_context: (),
-        }
-    }
-    pub fn user_context<S2>(self, user_context: S2) -> AutoClientBuilder<S2> {
-        AutoClientBuilder {
-            handlers: self.handlers,
-            tick_rate: self.tick_rate,
-            initial_state: self.initial_state,
             user_context,
         }
     }
-}
-
-impl<S> AutoClientBuilder<S>
-where
-    S: Clone,
-{
-    // pub fn new() -> Self {
-    //     Self {
-    //         handlers: None,
-    //         tick_rate: Duration::from_millis(50),
-    //         initial_state: None,
-    //         user_context: (),
-    //     }
-    // }
     pub fn add_state<I, C: Callback<S> + 'static>(
-        self,
+        mut self,
         name: String,
         f: impl IntoCallback<I, S, Callback = C>,
     ) -> Self {
-        let mut handlers = self.handlers.unwrap_or_default();
-        handlers.insert(name, Box::new(f.into_callback()));
-        Self {
-            handlers: Some(handlers),
-            ..self
-        }
+        self.handlers.insert(name, Box::new(f.into_callback()));
+        self
     }
     pub fn tick_rate(mut self, tick_rate: Duration) -> Self {
         self.tick_rate = tick_rate;
@@ -63,9 +40,16 @@ where
         self
     }
     pub fn build(self) -> AutoClient<S> {
-        let handlers = self.handlers.unwrap();
-        let initial_state = self.initial_state.unwrap();
-        AutoClient::new(handlers, self.tick_rate, initial_state, self.user_context)
+        if self.handlers.is_empty() {
+            panic!("No states added");
+        }
+        let initial_state = self.initial_state.expect("Initial state not set");
+        AutoClient::new(
+            self.handlers,
+            self.tick_rate,
+            initial_state,
+            self.user_context,
+        )
     }
 }
 #[cfg(test)]
@@ -82,12 +66,28 @@ mod tests {
 
     use super::*;
     #[test]
-    fn test() {
-        let mut client = AutoClientBuilder::new()
+    fn test_basic() {
+        let client = AutoClientBuilder::new(())
             .add_state("test".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test".to_string())
             .build();
-        client.run();
+        assert_eq!(client.get_context().current_state, "test");
+        assert_eq!(client.get_tick_rate(), &Duration::from_millis(50));
+        assert_eq!(client.get_user_context(), &());
+        assert_eq!(client.handlers.len(), 2);
+    }
+    #[test]
+    #[should_panic]
+    fn test_no_states() {
+        let _client = AutoClientBuilder::new(()).build();
+    }
+    #[test]
+    #[should_panic]
+    fn test_no_initial_state() {
+        let _client = AutoClientBuilder::new(())
+            .add_state("test".to_string(), test1)
+            .add_state("test2".to_string(), test2)
+            .build();
     }
 }

@@ -18,7 +18,7 @@ impl<S> FromContext<S> for State<S>
 where
     S: Clone,
 {
-    fn from_context(context: &AutoClientContext, user_context: &S) -> Self {
+    fn from_context(_context: &AutoClientContext, user_context: &S) -> Self {
         Self(user_context.clone())
     }
 }

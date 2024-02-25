@@ -2,7 +2,11 @@ pub mod builder;
 pub mod context;
 pub mod extractor;
 pub mod mymacro;
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use context::StoredCallback;
 
@@ -10,16 +14,16 @@ use crate::context::AutoClientContext;
 
 pub struct AutoClient<S>
 where
-    S: Clone,
+    S: Clone + Send + Sync + 'static,
 {
-    handlers: HashMap<String, StoredCallback<S>>,
+    handlers: Arc<HashMap<String, StoredCallback<S>>>,
     tick_rate: Duration,
-    context: AutoClientContext,
+    context: Arc<Mutex<AutoClientContext>>,
     user_context: S,
 }
 impl<S> AutoClient<S>
 where
-    S: Clone,
+    S: Clone + Send + Sync,
 {
     pub fn new(
         handlers: HashMap<String, StoredCallback<S>>,
@@ -28,26 +32,108 @@ where
         user_context: S,
     ) -> Self {
         Self {
-            handlers,
+            handlers: Arc::new(handlers),
             tick_rate,
-            context: AutoClientContext {
+            context: Arc::new(Mutex::new(AutoClientContext {
                 tick_rate,
                 current_state: initial_state.clone(),
                 initial_state,
-            },
+                life_cycle: context::LifeCycle::Stopped,
+            })),
             user_context,
         }
     }
-    pub fn run_blocking(&mut self) {
-        loop {
-            let handler = self.handlers.get(&self.context.current_state).unwrap();
-            let output = handler.call(&self.context, &self.user_context.clone());
-            println!("{}", output);
-            self.context.current_state = output;
-            std::thread::sleep(self.tick_rate);
-        }
+    pub fn get_context(&self) -> AutoClientContext {
+        self.context.lock().unwrap().clone()
+    }
+    pub fn get_user_context(&self) -> &S {
+        &self.user_context
+    }
+    pub fn get_tick_rate(&self) -> &Duration {
+        &self.tick_rate
+    }
+    pub fn pause(&mut self) {
+        self.context.lock().unwrap().life_cycle = context::LifeCycle::Paused;
+    }
+    pub fn resume(&mut self) {
+        self.context.lock().unwrap().life_cycle = context::LifeCycle::Running;
+    }
+    pub fn stop(&mut self) {
+        self.context.lock().unwrap().life_cycle = context::LifeCycle::Stopped;
     }
     pub fn run(&mut self) {
-        todo!()
+        self.context.lock().unwrap().life_cycle = context::LifeCycle::Running;
+        let context = self.context.clone();
+        let user_context = self.user_context.clone();
+        let handlers = self.handlers.clone();
+        std::thread::spawn(move || loop {
+            let mut context_guard = context.lock().unwrap();
+            let tick_rate = context_guard.tick_rate;
+            match context_guard.life_cycle {
+                context::LifeCycle::Paused => {
+                    drop(context_guard);
+                    std::thread::sleep(tick_rate);
+                }
+                context::LifeCycle::Stopped => {
+                    context_guard.life_cycle = context::LifeCycle::Stopped;
+                    context_guard.current_state = context_guard.initial_state.clone();
+                    break;
+                }
+                context::LifeCycle::Running => {
+                    let handler = handlers.get(&context_guard.current_state).unwrap();
+                    let output = handler.call(&context_guard, &mut user_context.clone());
+                    context_guard.current_state = output;
+                    drop(context_guard);
+                    std::thread::sleep(tick_rate);
+                }
+            }
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::builder::AutoClientBuilder;
+
+    fn test1(_: AutoClientContext) -> String {
+        println!("test1");
+        "test2".to_string()
+    }
+    fn test2(_: AutoClientContext) -> String {
+        println!("test2");
+        "test1".to_string()
+    }
+    #[test]
+    fn test_basic_run() {
+        let mut client = AutoClientBuilder::new("".to_string())
+            .add_state("test1".to_string(), test1)
+            .add_state("test2".to_string(), test2)
+            .initial_state("test1".to_string())
+            .build();
+        client.run();
+        std::thread::sleep(Duration::from_millis(10));
+        assert_eq!(client.get_context().current_state, "test2");
+        std::thread::sleep(Duration::from_millis(51));
+        assert_eq!(client.get_context().current_state, "test1");
+        client.stop();
+    }
+    #[test]
+    fn test_pause() {
+        let mut client = AutoClientBuilder::new("".to_string())
+            .add_state("test1".to_string(), test1)
+            .add_state("test2".to_string(), test2)
+            .initial_state("test1".to_string())
+            .build();
+        client.run();
+        std::thread::sleep(Duration::from_millis(10));
+        assert_eq!(client.get_context().current_state, "test2");
+        client.pause();
+        std::thread::sleep(Duration::from_millis(51));
+        assert_eq!(client.get_context().current_state, "test2");
+        client.resume();
+        std::thread::sleep(Duration::from_millis(51));
+        assert_eq!(client.get_context().current_state, "test1");
+        client.stop();
     }
 }
