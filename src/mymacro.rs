@@ -1,7 +1,7 @@
 use crate::context::{Callback, Wrapper};
 use crate::extractor::FromContext;
-pub trait IntoCallback<Input> {
-    type Callback: Callback;
+pub trait IntoCallback<Input, S> {
+    type Callback: Callback<S>;
 
     fn into_callback(self) -> Self::Callback;
 }
@@ -12,7 +12,7 @@ macro_rules! impl_into_callback {
                 $params:ident
         ),+)?
     ) => {
-        impl<F: Fn($($($params),+)?)->String $(, $($params: 'static + FromContext),+ )?> IntoCallback<( $($($params,)+)? )> for F {
+        impl<F: Fn($($($params),+)?, S)->String $(, $($params: 'static + FromContext),+ )?, S> IntoCallback<( $($($params,)+)? ), S> for F {
             type Callback = Wrapper<( $($($params,)+)? ), Self>;
 
             fn into_callback(self) -> Self::Callback {

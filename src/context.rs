@@ -22,26 +22,26 @@ pub struct Wrapper<T, F> {
     pub marker: std::marker::PhantomData<T>,
 }
 
-pub trait Callback {
-    fn call(&self, context: &AutoClientContext) -> String;
+pub trait Callback<S> {
+    fn call(&self, context: &AutoClientContext, s: S) -> String;
 }
-impl<F, T1> Callback for Wrapper<(T1,), F>
+impl<F, S, T1> Callback<S> for Wrapper<(T1,), F>
 where
-    F: Fn(T1) -> String,
+    F: Fn(T1, S) -> String,
     T1: FromContext,
 {
-    fn call(&self, context: &AutoClientContext) -> String {
-        (self.f)(T1::from_context(context))
+    fn call(&self, context: &AutoClientContext, s: S) -> String {
+        (self.f)(T1::from_context(context), s)
     }
 }
-impl<F, T1, T2> Callback for Wrapper<(T1, T2), F>
+impl<F, T1, T2, S> Callback<S> for Wrapper<(T1, T2), F>
 where
-    F: Fn(T1, T2) -> String,
+    F: Fn(T1, T2, S) -> String,
     T1: FromContext,
     T2: FromContext,
 {
-    fn call(&self, context: &AutoClientContext) -> String {
-        (self.f)(T1::from_context(context), T2::from_context(context))
+    fn call(&self, context: &AutoClientContext, s: S) -> String {
+        (self.f)(T1::from_context(context), T2::from_context(context), s)
     }
 }
-pub type StoredCallback = Box<dyn Callback>;
+pub type StoredCallback<S> = Box<dyn Callback<S>>;

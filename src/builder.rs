@@ -4,31 +4,32 @@ use crate::mymacro::IntoCallback;
 use crate::AutoClient;
 
 use crate::context::{Callback, StoredCallback};
-pub struct AutoClientBuilder {
-    handlers: Option<HashMap<String, StoredCallback>>,
+pub struct AutoClientBuilder<S = ()> {
+    handlers: Option<HashMap<String, StoredCallback<S>>>,
     tick_rate: Duration,
     initial_state: Option<String>,
+    user_context: S,
 }
 
-impl Default for AutoClientBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl AutoClientBuilder {
+impl AutoClientBuilder<()> {
     pub fn new() -> Self {
         Self {
-            initial_state: None,
             handlers: None,
             tick_rate: Duration::from_millis(50),
+            initial_state: None,
+            user_context: (),
         }
     }
+}
 
-    pub fn add_state<I, C: Callback + 'static>(
+impl<S> AutoClientBuilder<S>
+where
+    S: Clone,
+{
+    pub fn add_state<I, C: Callback<S> + 'static>(
         self,
         name: String,
-        f: impl IntoCallback<I, Callback = C>,
+        f: impl IntoCallback<I, S, Callback = C>,
     ) -> Self {
         let mut handlers = self.handlers.unwrap_or_default();
         handlers.insert(name, Box::new(f.into_callback()));
@@ -45,19 +46,19 @@ impl AutoClientBuilder {
         self.initial_state = Some(initial_state);
         self
     }
-    pub fn build(self) -> AutoClient {
+    pub fn build(self) -> AutoClient<S> {
         let handlers = self.handlers.unwrap();
         let initial_state = self.initial_state.unwrap();
-        AutoClient::new(handlers, self.tick_rate, initial_state)
+        AutoClient::new(handlers, self.tick_rate, initial_state, self.user_context)
     }
 }
 #[cfg(test)]
 mod tests {
-    fn test1(_: AutoClientContext) -> String {
+    fn test1(_: AutoClientContext, _: ()) -> String {
         println!("test1");
         "test2".to_string()
     }
-    fn test2(_: AutoClientContext, TickRate(r): TickRate) -> String {
+    fn test2(_: AutoClientContext, TickRate(r): TickRate, _: ()) -> String {
         println!("TickRate: {:?}", r);
         "test".to_string()
     }
