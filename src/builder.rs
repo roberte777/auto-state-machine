@@ -1,9 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
-use crate::mymacro::IntoCallback;
+use crate::callback::IntoCallback;
 use crate::AutoClient;
 
-use crate::context::{Callback, StoredCallback};
+use crate::callback::{Callback, StoredCallback};
 pub struct AutoClientBuilder<S> {
     handlers: HashMap<String, StoredCallback<S>>,
     tick_rate: Duration,

@@ -1,14 +1,14 @@
 pub mod builder;
+pub mod callback;
 pub mod context;
 pub mod extractor;
-pub mod mymacro;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
-use context::StoredCallback;
+use callback::StoredCallback;
 
 use crate::context::AutoClientContext;
 
