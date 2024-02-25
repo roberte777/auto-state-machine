@@ -41,7 +41,7 @@ where
     pub fn run_blocking(&mut self) {
         loop {
             let handler = self.handlers.get(&self.context.current_state).unwrap();
-            let output = handler.call(&self.context, self.user_context.clone());
+            let output = handler.call(&self.context, &self.user_context.clone());
             println!("{}", output);
             self.context.current_state = output;
             std::thread::sleep(self.tick_rate);

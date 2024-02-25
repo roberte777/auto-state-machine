@@ -10,8 +10,8 @@ pub struct AutoClientContext {
     pub current_state: String,
     pub initial_state: String,
 }
-impl FromContext for AutoClientContext {
-    fn from_context(context: &AutoClientContext) -> Self {
+impl<S> FromContext<S> for AutoClientContext {
+    fn from_context(context: &AutoClientContext, user_state: &S) -> Self {
         context.clone()
     }
 }
@@ -23,25 +23,25 @@ pub struct Wrapper<T, F> {
 }
 
 pub trait Callback<S> {
-    fn call(&self, context: &AutoClientContext, s: S) -> String;
+    fn call(&self, context: &AutoClientContext, s: &S) -> String;
 }
 impl<F, S, T1> Callback<S> for Wrapper<(T1,), F>
 where
-    F: Fn(T1, S) -> String,
-    T1: FromContext,
+    F: Fn(T1) -> String,
+    T1: FromContext<S>,
 {
-    fn call(&self, context: &AutoClientContext, s: S) -> String {
-        (self.f)(T1::from_context(context), s)
+    fn call(&self, context: &AutoClientContext, s: &S) -> String {
+        (self.f)(T1::from_context(context, s))
     }
 }
 impl<F, T1, T2, S> Callback<S> for Wrapper<(T1, T2), F>
 where
-    F: Fn(T1, T2, S) -> String,
-    T1: FromContext,
-    T2: FromContext,
+    F: Fn(T1, T2) -> String,
+    T1: FromContext<S>,
+    T2: FromContext<S>,
 {
-    fn call(&self, context: &AutoClientContext, s: S) -> String {
-        (self.f)(T1::from_context(context), T2::from_context(context), s)
+    fn call(&self, context: &AutoClientContext, s: &S) -> String {
+        (self.f)(T1::from_context(context, s), T2::from_context(context, s))
     }
 }
 pub type StoredCallback<S> = Box<dyn Callback<S>>;

@@ -20,12 +20,28 @@ impl AutoClientBuilder<()> {
             user_context: (),
         }
     }
+    pub fn user_context<S2>(self, user_context: S2) -> AutoClientBuilder<S2> {
+        AutoClientBuilder {
+            handlers: self.handlers,
+            tick_rate: self.tick_rate,
+            initial_state: self.initial_state,
+            user_context,
+        }
+    }
 }
 
 impl<S> AutoClientBuilder<S>
 where
     S: Clone,
 {
+    // pub fn new() -> Self {
+    //     Self {
+    //         handlers: None,
+    //         tick_rate: Duration::from_millis(50),
+    //         initial_state: None,
+    //         user_context: (),
+    //     }
+    // }
     pub fn add_state<I, C: Callback<S> + 'static>(
         self,
         name: String,
@@ -54,11 +70,11 @@ where
 }
 #[cfg(test)]
 mod tests {
-    fn test1(_: AutoClientContext, _: ()) -> String {
+    fn test1(_: AutoClientContext) -> String {
         println!("test1");
         "test2".to_string()
     }
-    fn test2(_: AutoClientContext, TickRate(r): TickRate, _: ()) -> String {
+    fn test2(_: AutoClientContext, TickRate(r): TickRate) -> String {
         println!("TickRate: {:?}", r);
         "test".to_string()
     }
