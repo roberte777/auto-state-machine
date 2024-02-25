@@ -3,6 +3,7 @@ pub mod callback;
 pub mod context;
 pub mod extractor;
 use std::{
+    any::Any,
     collections::HashMap,
     sync::{Arc, Mutex},
     time::Duration,
@@ -16,7 +17,7 @@ pub struct AutoClient<S>
 where
     S: Clone + Send + Sync + 'static,
 {
-    handlers: Arc<HashMap<String, StoredCallback<S>>>,
+    handlers: Arc<HashMap<String, StoredCallback>>,
     tick_rate: Duration,
     context: Arc<Mutex<AutoClientContext>>,
     user_context: S,
@@ -26,7 +27,7 @@ where
     S: Clone + Send + Sync,
 {
     pub fn new(
-        handlers: HashMap<String, StoredCallback<S>>,
+        handlers: HashMap<String, StoredCallback>,
         tick_rate: Duration,
         initial_state: String,
         user_context: S,
@@ -81,7 +82,8 @@ where
                 }
                 context::LifeCycle::Running => {
                     let handler = handlers.get(&context_guard.current_state).unwrap();
-                    let output = handler.call(&context_guard, &mut user_context.clone());
+                    let mut boxed_state = Box::new(user_context.clone()) as Box<dyn Any>;
+                    let output = handler.call(&context_guard, &mut boxed_state);
                     context_guard.current_state = output;
                     drop(context_guard);
                     std::thread::sleep(tick_rate);
@@ -106,7 +108,7 @@ mod tests {
     }
     #[test]
     fn test_basic_run() {
-        let mut client = AutoClientBuilder::new("".to_string())
+        let mut client = AutoClientBuilder::new()
             .add_state("test1".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test1".to_string())
@@ -120,7 +122,7 @@ mod tests {
     }
     #[test]
     fn test_pause() {
-        let mut client = AutoClientBuilder::new("".to_string())
+        let mut client = AutoClientBuilder::new()
             .add_state("test1".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test1".to_string())

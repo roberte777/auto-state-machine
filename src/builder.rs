@@ -4,26 +4,37 @@ use crate::callback::IntoCallback;
 use crate::AutoClient;
 
 use crate::callback::{Callback, StoredCallback};
-pub struct AutoClientBuilder<S> {
-    handlers: HashMap<String, StoredCallback<S>>,
+pub struct AutoClientBuilder<S = ()> {
+    handlers: HashMap<String, StoredCallback>,
     tick_rate: Duration,
     initial_state: Option<String>,
     user_context: S,
+}
+
+impl AutoClientBuilder<()> {
+    pub fn new() -> Self {
+        Self {
+            handlers: HashMap::new(),
+            tick_rate: Duration::from_millis(50),
+            initial_state: None,
+            user_context: (),
+        }
+    }
+    pub fn with_user_context<S>(self, user_context: S) -> AutoClientBuilder<S> {
+        AutoClientBuilder::<S> {
+            handlers: self.handlers,
+            tick_rate: self.tick_rate,
+            initial_state: self.initial_state,
+            user_context,
+        }
+    }
 }
 
 impl<S> AutoClientBuilder<S>
 where
     S: Clone + Send + Sync,
 {
-    pub fn new(user_context: S) -> Self {
-        Self {
-            handlers: HashMap::new(),
-            tick_rate: Duration::from_millis(50),
-            initial_state: None,
-            user_context,
-        }
-    }
-    pub fn add_state<I, C: Callback<S> + 'static>(
+    pub fn add_state<I, C: Callback + 'static>(
         mut self,
         name: String,
         f: impl IntoCallback<I, S, Callback = C>,
@@ -54,7 +65,7 @@ where
 }
 #[cfg(test)]
 mod tests {
-    fn test1(_: AutoClientContext) -> String {
+    fn test1(_: AutoClientContext, State(_): State<()>) -> String {
         println!("test1");
         "test2".to_string()
     }
@@ -62,12 +73,15 @@ mod tests {
         println!("TickRate: {:?}", r);
         "test".to_string()
     }
-    use crate::{context::AutoClientContext, extractor::TickRate};
+    use crate::{
+        context::AutoClientContext,
+        extractor::{State, TickRate},
+    };
 
     use super::*;
     #[test]
     fn test_basic() {
-        let client = AutoClientBuilder::new(())
+        let client = AutoClientBuilder::new()
             .add_state("test".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test".to_string())
@@ -80,12 +94,12 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_no_states() {
-        let _client = AutoClientBuilder::new(()).build();
+        let _client = AutoClientBuilder::new().build();
     }
     #[test]
     #[should_panic]
     fn test_no_initial_state() {
-        let _client = AutoClientBuilder::new(())
+        let _client = AutoClientBuilder::new()
             .add_state("test".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .build();
