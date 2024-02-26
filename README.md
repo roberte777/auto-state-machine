@@ -87,7 +87,8 @@ fn main() {
         .tick_rate(Duration::from_millis(100))         
         .build();      
     // Use the client... 
-}```
+}
+```
 
 This example creates an `AutoClient` with two states (`test1` and `test2`) and a tick rate of 100 milliseconds. The client starts in the `test1` state and prints a message before transitioning to the `test2` state, which also prints a message and transitions back to `test1`.
 
