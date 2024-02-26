@@ -22,9 +22,11 @@ The `AutoClientBuilder` struct is the entry point for creating an `AutoClient`. 
 
 To start building your `AutoClient`, create a new instance of `AutoClientBuilder`:
 
-rustCopy code
 
-`use auto_client::AutoClientBuilder;  let builder = AutoClientBuilder::new(user_context);`
+```rust
+use auto_client::AutoClientBuilder;
+let builder = AutoClientBuilder::new(user_context);
+```
 
 The `user_context` parameter is a user-defined data structure that will be passed to each callback. It can be used to maintain state or share information between callbacks.
 
@@ -32,9 +34,10 @@ The `user_context` parameter is a user-defined data structure that will be passe
 
 You can add states to your client using the `add_state` method. Each state requires a name and a callback function that defines the state's behavior:
 
-rustCopy code
 
-`builder.add_state("state_name".to_string(), callback_function);`
+```rust
+builder.add_state("state_name".to_string(), callback_function);
+```
 
 The callback function can be any function that implements the `Callback` trait, allowing for flexible state behavior definition.
 
@@ -42,25 +45,25 @@ The callback function can be any function that implements the `Callback` trait, 
 
 The tick rate determines how often the client's state is updated. You can set the tick rate using the `tick_rate` method:
 
-rustCopy code
-
-`builder.tick_rate(Duration::from_millis(100));`
+```rust
+builder.tick_rate(Duration::from_millis(100));
+```
 
 ### Specifying the Initial State
 
 Before building your client, you must specify the initial state using the `initial_state` method:
 
-rustCopy code
-
-`builder.initial_state("initial_state_name".to_string());`
+```rust
+builder.initial_state("initial_state_name".to_string());
+```
 
 ### Building the AutoClient
 
 Once all configurations are set, you can build your `AutoClient`:
 
-rustCopy code
-
-`let client = builder.build();`
+```rust
+let client = builder.build();
+```
 
 This method finalizes the builder and returns an instance of `AutoClient`.
 
