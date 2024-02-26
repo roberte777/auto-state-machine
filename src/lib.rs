@@ -1,7 +1,70 @@
+//! # MyCrate (Crate Name Placeholder)
+//!
+//! This crate provides a flexible, state-driven automation client designed to manage and execute
+//! state transitions based on user-defined logic and conditions. It's built to facilitate complex
+//! workflows where operations need to occur in a specific order, with pauses, resumes, and stops,
+//! making it ideal for simulations, automated processes, or game logic.
+//!
+//! ## Features
+//!
+//! - **State Management**: Define states and their associated callbacks to manage the flow of your application.
+//! - **Control Flow**: Dynamically control the execution flow with pause, resume, and stop functionalities.
+//! - **Tick Rate Control**: Specify the rate at which the client checks and updates states, allowing for
+//!   fine-tuned control over execution speed.
+//! - **User Context**: Pass a user-defined context through states, enabling stateful operations and data
+//!   persistence across state transitions.
+//!
+//! ## Quick Start
+//!
+//! Add `mycrate` to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! mycrate = "0.1.0"
+//! ```
+//!
+//! ### Example
+//!
+//! Here's a basic example to get you started:
+//!
+//! ```rust
+//! use autoclienttools::{AutoClientBuilder, AutoClientContext, extractor::State};
+//! use std::time::Duration;
+//!
+//! fn sample_callback(context: AutoClientContext, State(user_context): State<()>) -> String {
+//!     println!("Current state: {}", context.current_state);
+//!     "init".to_string()
+//! }
+//!
+//! let mut client = AutoClientBuilder::new(())
+//!     .add_state("init".to_string(), sample_callback)
+//!     .initial_state("init".to_string())
+//!     .tick_rate(Duration::from_secs(1))
+//!     .build();
+//!
+//! client.run();
+//! // The client is now running, transitioning from "init" to "next_state"
+//! // according to the logic you've defined.
+//! std::thread::sleep(Duration::from_millis(50));
+//! client.stop();
+//! ```
+//!
+//! ## Control Flow Methods
+//!
+//! - `run()`: Start the client's execution, allowing state transitions to occur.
+//! - `pause()`: Pause the execution, freezing the current state.
+//! - `resume()`: Resume execution from the current state.
+//! - `stop()`: Stop execution, resetting to the initial state.
+//!
+//! This crate aims to simplify the creation of automated, state-driven systems with minimal boilerplate
+//! and high flexibility. For more detailed documentation and advanced usage, please refer to the specific
+//! module and method documentation within the crate.
 pub mod builder;
-pub mod callback;
+mod callback;
 pub mod context;
 pub mod extractor;
+pub use builder::AutoClientBuilder;
+pub use context::AutoClientContext;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -9,8 +72,6 @@ use std::{
 };
 
 use callback::StoredCallback;
-
-use crate::context::AutoClientContext;
 
 pub struct AutoClient<S>
 where

@@ -4,7 +4,7 @@
 //! Tell it `what` to do by adding states and `how` to do it by providing a callback
 //!
 //! ```rust
-//! use auto_client::{AutoClientBuilder, AutoClientContext, TickRate};
+//! use autoclienttools::{AutoClientBuilder, AutoClientContext, extractor::TickRate};
 //! use std::time::Duration;
 //! fn test1(_: AutoClientContext) -> String {
 //!    println!("test1");
@@ -46,8 +46,9 @@ where
     /// Intended to act as some sort of state you can use in your callbacks.
     ///
     /// # Example
-    /// ```rust
-    /// use auto_client::AutoClientBuilder;
+    /// ```rust no_run
+    /// use autoclienttools::AutoClientBuilder;
+    /// use std::sync::{Arc, Mutex};
     /// // Pass it in () if you don't care about user_context
     /// let client = AutoClientBuilder::new(()).build();
     /// // If you want to modify the user_context in your handlers,
@@ -70,13 +71,14 @@ where
     /// * `f` - The callback to be called when the state is active
     /// # Example
     /// ```rust
-    /// use auto_client::{AutoClientBuilder, AutoClientContext};
+    /// use autoclienttools::{AutoClientBuilder, AutoClientContext};
     /// fn test1(_: AutoClientContext) -> String {
     ///   println!("test1");
     ///   "test1".to_string()
     /// }
     /// let client = AutoClientBuilder::new(())
     ///  .add_state("test".to_string(), test1)
+    ///  .initial_state("test".to_string())
     ///  .build();
     ///  ```
     pub fn add_state<I, C: Callback<S> + 'static>(

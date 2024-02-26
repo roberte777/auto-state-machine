@@ -8,6 +8,47 @@ states and callbacks, allowing users to define specific actions and transitions
 depending on the client's current state. This approach makes it ideal for 
 creating complex workflows, automations, or state-driven applications.
 
+## Features
+
+*   **State Management**: Define states and their associated callbacks to 
+manage the flow of your application.
+*   **Control Flow**: Dynamically control the execution flow with pause, 
+resume, and stop functionalities.
+*   **Tick Rate Control**: Specify the rate at which the client checks and 
+updates states, allowing for fine-tuned control over execution speed.
+*   **User Context**: Pass a user-defined context through states, enabling 
+stateful operations and data persistence across state transitions.
+
+## Quick Start
+
+Here's a basic example to get you started:
+
+use mycrate::{AutoClientBuilder, AutoClientContext};
+use std::time::Duration;
+
+```rust
+use autoclienttools::{AutoClientBuilder, AutoClientContext, extractor::State};
+use std::time::Duration;
+
+fn sample_callback(context: AutoClientContext, State(user_context): State<()>) -> String {
+    println!("Current state: {}", context.current_state);
+    "init".to_string()
+}
+
+let mut client = AutoClientBuilder::new(())
+    .add_state("init".to_string(), sample_callback)
+    .initial_state("init".to_string())
+    .tick_rate(Duration::from_secs(1))
+    .build();
+
+client.run();
+// The client is now running, transitioning from "init" to "next_state"
+// according to the logic you've defined.
+std::thread::sleep(Duration::from_millis(50));
+client.stop();
+```
+
+
 ## Getting Started
 
 To use AutoClient, include it in your `Cargo.toml` file:
@@ -85,7 +126,7 @@ Here's a complete example that demonstrates how to create an `AutoClient`
 with two states:
 
 ```rust
-use auto_client::{AutoClientBuilder, AutoClientContext, TickRate}; 
+use auto_client::{AutoClientBuilder, AutoClientContext, extractor::TickRate}; 
 use std::time::Duration;  
 fn main() {     
     fn test1(_: AutoClientContext) -> String {         
