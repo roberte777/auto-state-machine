@@ -68,9 +68,26 @@ This method finalizes the builder and returns an instance of `AutoClient`.
 
 Here's a complete example that demonstrates how to create an `AutoClient` with two states:
 
-rustCopy code
-
-`use auto_client::{AutoClientBuilder, AutoClientContext, TickRate}; use std::time::Duration;  fn main() {     fn test1(_: AutoClientContext) -> String {         println!("State: test1");         "test2".to_string()     }      fn test2(_: AutoClientContext, TickRate(r): TickRate) -> String {         println!("State: test2, TickRate: {:?}", r);         "test1".to_string()     }      let client = AutoClientBuilder::new(())         .add_state("test1".to_string(), test1)         .add_state("test2".to_string(), test2)         .initial_state("test1".to_string())         .tick_rate(Duration::from_millis(100))         .build();      // Use the client... }`
+```rust
+use auto_client::{AutoClientBuilder, AutoClientContext, TickRate}; 
+use std::time::Duration;  
+fn main() {     
+    fn test1(_: AutoClientContext) -> String {         
+        println!("State: test1");         
+        "test2".to_string()     
+    }      
+    fn test2(_: AutoClientContext, TickRate(r): TickRate) -> String {         
+        println!("State: test2, TickRate: {:?}", r);
+        "test1".to_string()     
+    }      
+    let client = AutoClientBuilder::new(())         
+        .add_state("test1".to_string(), test1)         
+        .add_state("test2".to_string(), test2)         
+        .initial_state("test1".to_string())         
+        .tick_rate(Duration::from_millis(100))         
+        .build();      
+    // Use the client... 
+}```
 
 This example creates an `AutoClient` with two states (`test1` and `test2`) and a tick rate of 100 milliseconds. The client starts in the `test1` state and prints a message before transitioning to the `test2` state, which also prints a message and transitions back to `test1`.
 
