@@ -4,13 +4,13 @@
 //! Tell it `what` to do by adding states and `how` to do it by providing a callback
 //!
 //! ```rust
-//! use autostatemachine::{StateMachineBuilder, StateMachineContext, extractor::TickRate};
+//! use autostatemachine::blocking::{StateMachineBuilder, StateMachineContext, extractor::TickRate};
 //! use std::time::Duration;
-//! async fn test1(_: StateMachineContext) -> String {
+//! fn test1(_: StateMachineContext) -> String {
 //!    println!("test1");
 //!    "test2".to_string()
 //! }
-//! async fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
+//! fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
 //!    println!("TickRate: {:?}", r);
 //!    "test".to_string()
 //! }
@@ -23,10 +23,10 @@
 //! ```
 use std::{collections::HashMap, time::Duration};
 
-use crate::callback::IntoCallback;
-use crate::StateMachine;
+use crate::blocking::callback::IntoCallback;
+use crate::blocking::StateMachine;
 
-use crate::callback::{Callback, StoredCallback};
+use crate::blocking::callback::{Callback, StoredCallback};
 /// Builder for StateMachine
 pub struct StateMachineBuilder<S> {
     handlers: HashMap<String, StoredCallback<S>>,
@@ -47,7 +47,7 @@ where
     ///
     /// # Example
     /// ```rust no_run
-    /// use autostatemachine::StateMachineBuilder;
+    /// use autostatemachine::blocking::StateMachineBuilder;
     /// use std::sync::{Arc, Mutex};
     /// // Pass it in () if you don't care about user_context
     /// let client = StateMachineBuilder::new(()).build();
@@ -71,8 +71,8 @@ where
     /// * `f` - The callback to be called when the state is active
     /// # Example
     /// ```rust
-    /// use autostatemachine::{StateMachineBuilder, StateMachineContext};
-    /// async fn test1(_: StateMachineContext) -> String {
+    /// use autostatemachine::blocking::{StateMachineBuilder, StateMachineContext};
+    /// fn test1(_: StateMachineContext) -> String {
     ///   println!("test1");
     ///   "test1".to_string()
     /// }
@@ -112,32 +112,32 @@ where
 }
 #[cfg(test)]
 mod tests {
-    async fn test1(_: StateMachineContext) -> String {
+    fn test1(_: StateMachineContext) -> String {
         println!("test1");
         "test2".to_string()
     }
-    async fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
+    fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
         println!("TickRate: {:?}", r);
         "test".to_string()
     }
-    use crate::{context::StateMachineContext, extractor::TickRate};
+    use crate::{blocking::context::StateMachineContext, blocking::extractor::TickRate};
 
     use super::*;
-    #[tokio::test]
-    async fn test_basic() {
+    #[test]
+    fn test_basic() {
         let client = StateMachineBuilder::new(())
             .add_state("test".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test".to_string())
             .build();
-        assert_eq!(client.get_context().await.current_state, "test");
+        assert_eq!(client.get_context().current_state, "test");
         assert_eq!(client.get_tick_rate(), &Duration::from_millis(50));
         assert_eq!(client.get_user_context(), &());
         assert_eq!(client.handlers.len(), 2);
     }
-    #[tokio::test]
+    #[test]
     #[should_panic]
-    async fn test_no_states() {
+    fn test_no_states() {
         let _client = StateMachineBuilder::new(()).build();
     }
     #[test]
