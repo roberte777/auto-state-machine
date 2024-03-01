@@ -1,19 +1,19 @@
-use autoclienttools::AutoClientContext;
-use autoclienttools::{extractor::TickRate, AutoClientBuilder};
+use autostatemachine::StateMachineContext;
+use autostatemachine::{extractor::TickRate, StateMachineBuilder};
 
 #[test]
 fn test_basic() {
-    let client = AutoClientBuilder::new(())
+    let client = StateMachineBuilder::new(())
         .add_state(
             "test".to_string(),
-            |_: autoclienttools::AutoClientContext| {
+            |_: autostatemachine::StateMachineContext| {
                 println!("test1");
                 "test2".to_string()
             },
         )
         .add_state(
             "test2".to_string(),
-            |_: AutoClientContext, TickRate(r): TickRate| {
+            |_: StateMachineContext, TickRate(r): TickRate| {
                 println!("TickRate: {:?}", r);
                 "test".to_string()
             },

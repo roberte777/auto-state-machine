@@ -1,4 +1,4 @@
-use crate::context::AutoClientContext;
+use crate::context::StateMachineContext;
 use crate::extractor::FromContext;
 pub trait IntoCallback<Input, S> {
     type Callback: Callback<S>;
@@ -12,7 +12,7 @@ pub struct Wrapper<T, F> {
 }
 
 pub trait Callback<S>: Send + Sync {
-    fn call(&self, context: &AutoClientContext, s: &mut S) -> String;
+    fn call(&self, context: &StateMachineContext, s: &mut S) -> String;
 }
 pub type StoredCallback<S> = Box<dyn Callback<S>>;
 macro_rules! impl_callback {
@@ -23,7 +23,7 @@ macro_rules! impl_callback {
     ) => {
         impl<F: Fn($($($params),+)?)->String + Send + Sync $(, $($params: 'static + FromContext<S> + Send + Sync),+ )?, S> Callback<S> for Wrapper<( $($($params,)+)? ), F> {
 
-            fn call(&self, context: &AutoClientContext, s: &mut S) -> String {
+            fn call(&self, context: &StateMachineContext, s: &mut S) -> String {
                 (self.f)($($($params::from_context(context, s)),+)?)
             }
         }

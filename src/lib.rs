@@ -28,15 +28,15 @@
 //! Here's a basic example to get you started:
 //!
 //! ```rust
-//! use autoclienttools::{AutoClientBuilder, AutoClientContext, extractor::State};
+//! use autostatemachine::{StateMachineBuilder, StateMachineContext, extractor::State};
 //! use std::time::Duration;
 //!
-//! fn sample_callback(context: AutoClientContext, State(user_context): State<()>) -> String {
+//! fn sample_callback(context: StateMachineContext, State(user_context): State<()>) -> String {
 //!     println!("Current state: {}", context.current_state);
 //!     "init".to_string()
 //! }
 //!
-//! let mut client = AutoClientBuilder::new(())
+//! let mut client = StateMachineBuilder::new(())
 //!     .add_state("init".to_string(), sample_callback)
 //!     .initial_state("init".to_string())
 //!     .tick_rate(Duration::from_secs(1))
@@ -63,8 +63,8 @@ pub mod builder;
 mod callback;
 pub mod context;
 pub mod extractor;
-pub use builder::AutoClientBuilder;
-pub use context::AutoClientContext;
+pub use builder::StateMachineBuilder;
+pub use context::StateMachineContext;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -73,16 +73,16 @@ use std::{
 
 use callback::StoredCallback;
 
-pub struct AutoClient<S>
+pub struct StateMachine<S>
 where
     S: Clone + Send + Sync + 'static,
 {
     handlers: Arc<HashMap<String, StoredCallback<S>>>,
     tick_rate: Duration,
-    context: Arc<Mutex<AutoClientContext>>,
+    context: Arc<Mutex<StateMachineContext>>,
     user_context: S,
 }
-impl<S> AutoClient<S>
+impl<S> StateMachine<S>
 where
     S: Clone + Send + Sync,
 {
@@ -95,7 +95,7 @@ where
         Self {
             handlers: Arc::new(handlers),
             tick_rate,
-            context: Arc::new(Mutex::new(AutoClientContext {
+            context: Arc::new(Mutex::new(StateMachineContext {
                 tick_rate,
                 current_state: initial_state.clone(),
                 initial_state,
@@ -104,7 +104,7 @@ where
             user_context,
         }
     }
-    pub fn get_context(&self) -> AutoClientContext {
+    pub fn get_context(&self) -> StateMachineContext {
         self.context.lock().unwrap().clone()
     }
     pub fn get_user_context(&self) -> &S {
@@ -155,19 +155,19 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builder::AutoClientBuilder;
+    use crate::builder::StateMachineBuilder;
 
-    fn test1(_: AutoClientContext) -> String {
+    fn test1(_: StateMachineContext) -> String {
         println!("test1");
         "test2".to_string()
     }
-    fn test2(_: AutoClientContext) -> String {
+    fn test2(_: StateMachineContext) -> String {
         println!("test2");
         "test1".to_string()
     }
     #[test]
     fn test_basic_run() {
-        let mut client = AutoClientBuilder::new("".to_string())
+        let mut client = StateMachineBuilder::new("".to_string())
             .add_state("test1".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test1".to_string())
@@ -181,7 +181,7 @@ mod tests {
     }
     #[test]
     fn test_pause() {
-        let mut client = AutoClientBuilder::new("".to_string())
+        let mut client = StateMachineBuilder::new("".to_string())
             .add_state("test1".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test1".to_string())

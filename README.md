@@ -1,8 +1,8 @@
-# AutoClient Crate Documentation
+# StateMachine Crate Documentation
 
 ## Overview
 
-The AutoClient crate provides a flexible and intuitive way to create an 
+The StateMachine crate provides a flexible and intuitive way to create an 
 automated actor with customizable behavior. It is built around the concept of 
 states and callbacks, allowing users to define specific actions and transitions 
 depending on the client's current state. This approach makes it ideal for 
@@ -23,19 +23,19 @@ stateful operations and data persistence across state transitions.
 
 Here's a basic example to get you started:
 
-use mycrate::{AutoClientBuilder, AutoClientContext};
+use mycrate::{StateMachineBuilder, StateMachineContext};
 use std::time::Duration;
 
 ```rust
-use autoclienttools::{AutoClientBuilder, AutoClientContext, extractor::State};
+use autostatemachine::{StateMachineBuilder, StateMachineContext, extractor::State};
 use std::time::Duration;
 
-fn sample_callback(context: AutoClientContext, State(user_context): State<()>) -> String {
+fn sample_callback(context: StateMachineContext, State(user_context): State<()>) -> String {
     println!("Current state: {}", context.current_state);
     "init".to_string()
 }
 
-let mut client = AutoClientBuilder::new(())
+let mut client = StateMachineBuilder::new(())
     .add_state("init".to_string(), sample_callback)
     .initial_state("init".to_string())
     .tick_rate(Duration::from_secs(1))
@@ -51,28 +51,28 @@ client.stop();
 
 ## Getting Started
 
-To use AutoClient, include it in your `Cargo.toml` file:
+To use StateMachine, include it in your `Cargo.toml` file:
 
 tomlCopy code
 
-`[dependencies] auto_client = "0.1.0"`
+`[dependencies] autostatemachine = "0.1.0"`
 
 Make sure to replace `"0.1.0"` with the latest version of the crate.
 
-## AutoClientBuilder
+## StateMachineBuilder
 
-The `AutoClientBuilder` struct is the entry point for creating an `AutoClient`.
+The `StateMachineBuilder` struct is the entry point for creating an `StateMachine`.
 It allows you to configure the client by adding states, setting a tick rate,
 specifying an initial state, and providing a user context.
 
 ### Creating a New Builder
 
-To start building your `AutoClient`, create a new instance of 
-`AutoClientBuilder`:
+To start building your `StateMachine`, create a new instance of 
+`StateMachineBuilder`:
 
 ```rust
-use auto_client::AutoClientBuilder;
-let builder = AutoClientBuilder::new(user_context);
+use autostatemachine::StateMachineBuilder;
+let builder = StateMachineBuilder::new(user_context);
 ```
 
 The `user_context` parameter is a user-defined data structure that will be 
@@ -110,34 +110,34 @@ Before building your client, you must specify the initial state using the
 builder.initial_state("initial_state_name".to_string());
 ```
 
-### Building the AutoClient
+### Building the StateMachine
 
-Once all configurations are set, you can build your `AutoClient`:
+Once all configurations are set, you can build your `StateMachine`:
 
 ```rust
 let client = builder.build();
 ```
 
-This method finalizes the builder and returns an instance of `AutoClient`.
+This method finalizes the builder and returns an instance of `StateMachine`.
 
 ### Example
 
-Here's a complete example that demonstrates how to create an `AutoClient`
+Here's a complete example that demonstrates how to create an `StateMachine`
 with two states:
 
 ```rust
-use auto_client::{AutoClientBuilder, AutoClientContext, extractor::TickRate}; 
+use autostatemachine::{StateMachineBuilder, StateMachineContext, extractor::TickRate}; 
 use std::time::Duration;  
 fn main() {     
-    fn test1(_: AutoClientContext) -> String {         
+    fn test1(_: StateMachineContext) -> String {         
         println!("State: test1");         
         "test2".to_string()     
     }      
-    fn test2(_: AutoClientContext, TickRate(r): TickRate) -> String {         
+    fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {         
         println!("State: test2, TickRate: {:?}", r);
         "test1".to_string()     
     }      
-    let client = AutoClientBuilder::new(())         
+    let client = StateMachineBuilder::new(())         
         .add_state("test1".to_string(), test1)         
         .add_state("test2".to_string(), test2)         
         .initial_state("test1".to_string())         
@@ -147,7 +147,7 @@ fn main() {
 }
 ```
 
-This example creates an `AutoClient` with two states (`test1` and `test2`) 
+This example creates an `StateMachine` with two states (`test1` and `test2`) 
 and a tick rate of 100 milliseconds. The client starts in the `test1` state 
 and prints a message before transitioning to the `test2` state, which also 
 prints a message and transitions back to `test1`.
@@ -159,27 +159,27 @@ consider using thread-safe wrappers like `Arc<Mutex<T>>` or `Arc<RwLock<T>>`.
 This approach allows for safe concurrent access and modification of the shared 
 context from multiple callbacks.
 
-## AutoClient
-The AutoClient struct is the core of your automated client, managing states, 
+## StateMachine
+The StateMachine struct is the core of your automated client, managing states, 
 transitions, and the execution cycle based on predefined states and associated 
 callbacks.
 
 ### Example Usage
 
-To use `AutoClient`, you typically start by defining state callbacks, 
-configuring an `AutoClientBuilder` instance, and then building your 
-`AutoClient`. Once built, you can control the client's execution flow with 
+To use `StateMachine`, you typically start by defining state callbacks, 
+configuring an `StateMachineBuilder` instance, and then building your 
+`StateMachine`. Once built, you can control the client's execution flow with 
 its methods.
 
-#### Creating and Running an AutoClient
+#### Creating and Running an StateMachine
 
 ```rust
-use auto_client::{AutoClientBuilder, AutoClientContext};
+use autostatemachine::{StateMachineBuilder, StateMachineContext};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 fn main() {
-    let mut client = AutoClientBuilder::new(Arc::new(Mutex::new(MyContext::new())))
+    let mut client = StateMachineBuilder::new(Arc::new(Mutex::new(MyContext::new())))
         .add_state("state1".to_string(), state1_handler)
         .add_state("state2".to_string(), state2_handler)
         .initial_state("state1".to_string())
