@@ -1,8 +1,8 @@
-# StateMachine Crate Documentation
+# Auto State Machine Crate Documentation
 
 ## Overview
 
-The StateMachine crate provides a flexible and intuitive way to create an 
+The Auto State Machine crate provides a flexible and intuitive way to create an 
 automated actor with customizable behavior. It is built around the concept of 
 states and callbacks, allowing users to define specific actions and transitions 
 depending on the client's current state. This approach makes it ideal for 
