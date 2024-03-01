@@ -1,4 +1,4 @@
-//! # MyCrate (Crate Name Placeholder)
+//! # AutoStateMachine
 //!
 //! This crate provides a flexible, state-driven automation client designed to manage and execute
 //! state transitions based on user-defined logic and conditions. It's built to facilitate complex
@@ -16,11 +16,11 @@
 //!
 //! ## Quick Start
 //!
-//! Add `mycrate` to your `Cargo.toml`:
+//! Add `autostatemachine` to your `Cargo.toml`:
 //!
 //! ```toml
 //! [dependencies]
-//! mycrate = "0.1.0"
+//! autostatemachine = "0.1.0"
 //! ```
 //!
 //! ### Example
@@ -28,6 +28,26 @@
 //! Here's a basic example to get you started:
 //!
 //! ```rust
+//! use autostatemachine::{StateMachineBuilder, StateMachineContext, extractor::State};
+//! use std::time::Duration;
+//! # async fn run() {
+//! async fn sample_callback(context: StateMachineContext, State(user_context): State<()>) -> String {
+//!     println!("Current state: {}", context.current_state);
+//!     "init".to_string()
+//! }
+//!
+//! let mut client = StateMachineBuilder::new(())
+//!     .add_state("init".to_string(), sample_callback)
+//!     .initial_state("init".to_string())
+//!     .tick_rate(Duration::from_secs(1))
+//!     .build();
+//!
+//! client.run().await;
+//! // The client is now running, transitioning from "init" to "next_state"
+//! // according to the logic you've defined.
+//! tokio::time::sleep(Duration::from_millis(50));
+//! client.stop().await;
+//! # }
 //! ```
 //!
 //! ## Control Flow Methods
@@ -41,17 +61,14 @@
 //! and high flexibility. For more detailed documentation and advanced usage, please refer to the specific
 //! module and method documentation within the crate.
 pub mod blocking;
-pub mod builder;
+mod builder;
 mod callback;
 pub mod context;
 pub mod extractor;
 pub use builder::StateMachineBuilder;
 pub use context::StateMachineContext;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+use tokio::sync::Mutex;
 
 use callback::StoredCallback;
 
@@ -86,8 +103,8 @@ where
             user_context,
         }
     }
-    pub fn get_context(&self) -> StateMachineContext {
-        self.context.lock().unwrap().clone()
+    pub async fn get_context(&self) -> StateMachineContext {
+        self.context.lock().await.clone()
     }
     pub fn get_user_context(&self) -> &S {
         &self.user_context
@@ -95,39 +112,45 @@ where
     pub fn get_tick_rate(&self) -> &Duration {
         &self.tick_rate
     }
-    pub fn pause(&mut self) {
-        self.context.lock().unwrap().life_cycle = context::LifeCycle::Paused;
+    pub async fn pause(&mut self) {
+        self.context.lock().await.life_cycle = context::LifeCycle::Paused;
     }
-    pub fn resume(&mut self) {
-        self.context.lock().unwrap().life_cycle = context::LifeCycle::Running;
+    pub async fn resume(&mut self) {
+        self.context.lock().await.life_cycle = context::LifeCycle::Running;
     }
-    pub fn stop(&mut self) {
-        self.context.lock().unwrap().life_cycle = context::LifeCycle::Stopped;
+    pub async fn stop(&mut self) {
+        self.context.lock().await.life_cycle = context::LifeCycle::Stopped;
     }
-    pub fn run(&mut self) {
-        self.context.lock().unwrap().life_cycle = context::LifeCycle::Running;
+    pub async fn run(&mut self) {
+        {
+            self.context.lock().await.life_cycle = context::LifeCycle::Running;
+        }
         let context = self.context.clone();
         let user_context = self.user_context.clone();
         let handlers = self.handlers.clone();
-        std::thread::spawn(move || loop {
-            let mut context_guard = context.lock().unwrap();
-            let tick_rate = context_guard.tick_rate;
-            match context_guard.life_cycle {
-                context::LifeCycle::Paused => {
-                    drop(context_guard);
-                    std::thread::sleep(tick_rate);
-                }
-                context::LifeCycle::Stopped => {
-                    context_guard.life_cycle = context::LifeCycle::Stopped;
-                    context_guard.current_state = context_guard.initial_state.clone();
-                    break;
-                }
-                context::LifeCycle::Running => {
-                    let handler = handlers.get(&context_guard.current_state).unwrap();
-                    let output = handler.call(&context_guard, &mut user_context.clone());
-                    context_guard.current_state = output;
-                    drop(context_guard);
-                    std::thread::sleep(tick_rate);
+        tokio::spawn(async move {
+            loop {
+                let mut context_guard = context.lock().await;
+                let tick_rate = context_guard.tick_rate;
+                match context_guard.life_cycle {
+                    context::LifeCycle::Paused => {
+                        drop(context_guard);
+                        tokio::time::sleep(tick_rate).await;
+                    }
+                    context::LifeCycle::Stopped => {
+                        context_guard.life_cycle = context::LifeCycle::Stopped;
+                        context_guard.current_state = context_guard.initial_state.clone();
+                        break;
+                    }
+                    context::LifeCycle::Running => {
+                        let handler = handlers.get(&context_guard.current_state).unwrap();
+                        let output = handler
+                            .call(&context_guard, &mut user_context.clone())
+                            .await;
+                        context_guard.current_state = output;
+                        drop(context_guard);
+                        tokio::time::sleep(tick_rate).await;
+                    }
                 }
             }
         });
@@ -136,47 +159,49 @@ where
 
 #[cfg(test)]
 mod tests {
+    use tokio::time::sleep;
+
     use super::*;
     use crate::builder::StateMachineBuilder;
 
-    fn test1(_: StateMachineContext) -> String {
+    async fn test1(_: StateMachineContext) -> String {
         println!("test1");
         "test2".to_string()
     }
-    fn test2(_: StateMachineContext) -> String {
+    async fn test2(_: StateMachineContext) -> String {
         println!("test2");
         "test1".to_string()
     }
-    #[test]
-    fn test_basic_run() {
+    #[tokio::test]
+    async fn test_basic_run() {
         let mut client = StateMachineBuilder::new("".to_string())
             .add_state("test1".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test1".to_string())
             .build();
-        client.run();
-        std::thread::sleep(Duration::from_millis(10));
-        assert_eq!(client.get_context().current_state, "test2");
-        std::thread::sleep(Duration::from_millis(51));
-        assert_eq!(client.get_context().current_state, "test1");
-        client.stop();
+        client.run().await;
+        sleep(Duration::from_millis(10)).await;
+        assert_eq!(client.get_context().await.current_state, "test2");
+        sleep(Duration::from_millis(51)).await;
+        assert_eq!(client.get_context().await.current_state, "test1");
+        client.stop().await;
     }
-    #[test]
-    fn test_pause() {
+    #[tokio::test]
+    async fn test_pause() {
         let mut client = StateMachineBuilder::new("".to_string())
             .add_state("test1".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test1".to_string())
             .build();
-        client.run();
-        std::thread::sleep(Duration::from_millis(10));
-        assert_eq!(client.get_context().current_state, "test2");
-        client.pause();
-        std::thread::sleep(Duration::from_millis(51));
-        assert_eq!(client.get_context().current_state, "test2");
-        client.resume();
-        std::thread::sleep(Duration::from_millis(51));
-        assert_eq!(client.get_context().current_state, "test1");
-        client.stop();
+        client.run().await;
+        sleep(Duration::from_millis(10)).await;
+        assert_eq!(client.get_context().await.current_state, "test2");
+        client.pause().await;
+        sleep(Duration::from_millis(51)).await;
+        assert_eq!(client.get_context().await.current_state, "test2");
+        client.resume().await;
+        sleep(Duration::from_millis(51)).await;
+        assert_eq!(client.get_context().await.current_state, "test1");
+        client.stop().await;
     }
 }

@@ -1,4 +1,4 @@
-//! # MyCrate (Crate Name Placeholder)
+//! # Syncronous State Machine
 //!
 //! This crate provides a flexible, state-driven automation client designed to manage and execute
 //! state transitions based on user-defined logic and conditions. It's built to facilitate complex

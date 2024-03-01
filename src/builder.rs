@@ -6,11 +6,11 @@
 //! ```rust
 //! use autostatemachine::{StateMachineBuilder, StateMachineContext, extractor::TickRate};
 //! use std::time::Duration;
-//! fn test1(_: StateMachineContext) -> String {
+//! async fn test1(_: StateMachineContext) -> String {
 //!    println!("test1");
 //!    "test2".to_string()
 //! }
-//! fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
+//! async fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
 //!    println!("TickRate: {:?}", r);
 //!    "test".to_string()
 //! }
@@ -72,7 +72,7 @@ where
     /// # Example
     /// ```rust
     /// use autostatemachine::{StateMachineBuilder, StateMachineContext};
-    /// fn test1(_: StateMachineContext) -> String {
+    /// async fn test1(_: StateMachineContext) -> String {
     ///   println!("test1");
     ///   "test1".to_string()
     /// }
@@ -112,32 +112,32 @@ where
 }
 #[cfg(test)]
 mod tests {
-    fn test1(_: StateMachineContext) -> String {
+    async fn test1(_: StateMachineContext) -> String {
         println!("test1");
         "test2".to_string()
     }
-    fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
+    async fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
         println!("TickRate: {:?}", r);
         "test".to_string()
     }
     use crate::{context::StateMachineContext, extractor::TickRate};
 
     use super::*;
-    #[test]
-    fn test_basic() {
+    #[tokio::test]
+    async fn test_basic() {
         let client = StateMachineBuilder::new(())
             .add_state("test".to_string(), test1)
             .add_state("test2".to_string(), test2)
             .initial_state("test".to_string())
             .build();
-        assert_eq!(client.get_context().current_state, "test");
+        assert_eq!(client.get_context().await.current_state, "test");
         assert_eq!(client.get_tick_rate(), &Duration::from_millis(50));
         assert_eq!(client.get_user_context(), &());
         assert_eq!(client.handlers.len(), 2);
     }
-    #[test]
+    #[tokio::test]
     #[should_panic]
-    fn test_no_states() {
+    async fn test_no_states() {
         let _client = StateMachineBuilder::new(()).build();
     }
     #[test]
