@@ -1,16 +1,13 @@
-use autostatemachine::StateMachineContext;
-use autostatemachine::{extractor::TickRate, StateMachineBuilder};
+use autostatemachine::blocking::StateMachineContext;
+use autostatemachine::blocking::{extractor::TickRate, StateMachineBuilder};
 
 #[test]
 fn test_basic() {
     let client = StateMachineBuilder::new(())
-        .add_state(
-            "test".to_string(),
-            |_: autostatemachine::StateMachineContext| {
-                println!("test1");
-                "test2".to_string()
-            },
-        )
+        .add_state("test".to_string(), |_: StateMachineContext| {
+            println!("test1");
+            "test2".to_string()
+        })
         .add_state(
             "test2".to_string(),
             |_: StateMachineContext, TickRate(r): TickRate| {

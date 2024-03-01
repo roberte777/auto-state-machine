@@ -28,25 +28,6 @@
 //! Here's a basic example to get you started:
 //!
 //! ```rust
-//! use autostatemachine::{StateMachineBuilder, StateMachineContext, extractor::State};
-//! use std::time::Duration;
-//!
-//! fn sample_callback(context: StateMachineContext, State(user_context): State<()>) -> String {
-//!     println!("Current state: {}", context.current_state);
-//!     "init".to_string()
-//! }
-//!
-//! let mut client = StateMachineBuilder::new(())
-//!     .add_state("init".to_string(), sample_callback)
-//!     .initial_state("init".to_string())
-//!     .tick_rate(Duration::from_secs(1))
-//!     .build();
-//!
-//! client.run();
-//! // The client is now running, transitioning from "init" to "next_state"
-//! // according to the logic you've defined.
-//! std::thread::sleep(Duration::from_millis(50));
-//! client.stop();
 //! ```
 //!
 //! ## Control Flow Methods
@@ -59,6 +40,7 @@
 //! This crate aims to simplify the creation of automated, state-driven systems with minimal boilerplate
 //! and high flexibility. For more detailed documentation and advanced usage, please refer to the specific
 //! module and method documentation within the crate.
+pub mod blocking;
 pub mod builder;
 mod callback;
 pub mod context;
