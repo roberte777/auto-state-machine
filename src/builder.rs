@@ -116,9 +116,9 @@ mod tests {
         println!("test1");
         "test2".to_string()
     }
-    async fn test2(_: StateMachineContext, TickRate(r): TickRate) -> String {
-        println!("TickRate: {:?}", r);
-        "test".to_string()
+    async fn test2() -> String {
+        println!("test2");
+        "test3".to_string()
     }
     use crate::{context::StateMachineContext, extractor::TickRate};
 
@@ -128,12 +128,19 @@ mod tests {
         let client = StateMachineBuilder::new(())
             .add_state("test".to_string(), test1)
             .add_state("test2".to_string(), test2)
+            .add_state(
+                "test3".to_string(),
+                move |_: StateMachineContext, TickRate(r): TickRate| async move {
+                    println!("TickRate: {:?}", r);
+                    "test".to_string()
+                },
+            )
             .initial_state("test".to_string())
             .build();
         assert_eq!(client.get_context().await.current_state, "test");
         assert_eq!(client.get_tick_rate(), &Duration::from_millis(50));
         assert_eq!(client.get_user_context(), &());
-        assert_eq!(client.handlers.len(), 2);
+        assert_eq!(client.handlers.len(), 3);
     }
     #[tokio::test]
     #[should_panic]

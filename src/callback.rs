@@ -42,6 +42,8 @@ macro_rules! impl_callback {
 }
 impl_callback!(T1);
 impl_callback!(T1, T2);
+impl_callback!(T1, T2, T3);
+impl_callback!(T1, T2, T3, T4);
 
 macro_rules! impl_into_callback {
     (
@@ -70,5 +72,33 @@ macro_rules! impl_into_callback {
 // impl_into_callback!();
 impl_into_callback!(T1);
 impl_into_callback!(T1, T2);
-// impl_into_callback!(T1, T2, T3);
-// impl_into_callback!(T1, T2, T3, T4);
+impl_into_callback!(T1, T2, T3);
+impl_into_callback!(T1, T2, T3, T4);
+
+// manual impl of callback and intocallback for no params
+impl<Fut, F, S> Callback<S> for Wrapper<(), F>
+where
+    F: Fn() -> Fut + Send + Sync,
+    Fut: futures::Future<Output = String> + Send + 'static,
+    S: 'static,
+{
+    fn call(&self, _: &StateMachineContext, _: &mut S) -> BoxFuture<'static, String> {
+        let fut = (self.f)();
+        Box::pin(fut)
+    }
+}
+impl<Fut, F, S> IntoCallback<(), S> for F
+where
+    F: Fn() -> Fut + Send + Sync,
+    Fut: futures::Future<Output = String> + Send + 'static,
+    S: 'static,
+{
+    type Callback = Wrapper<(), Self>;
+
+    fn into_callback(self) -> Self::Callback {
+        Wrapper {
+            f: self,
+            marker: Default::default(),
+        }
+    }
+}
