@@ -18,13 +18,15 @@ resume, and stop functionalities.
 updates states, allowing for fine-tuned control over execution speed.
 *   **User Context**: Pass a user-defined context through states, enabling 
 stateful operations and data persistence across state transitions.
+*   **Async and Blocking**: An async implementation is provided by default.
+The most common imagined use-case for this crate is working with IO tasks,
+so an async implementation is exposed by default. However, blocking tasks 
+are expected to be fairly frequent, so a blocking implementation is also
+provided in the `blocking` module.
 
 ## Quick Start
 
 Here's a basic example to get you started:
-
-use mycrate::{StateMachineBuilder, StateMachineContext};
-use std::time::Duration;
 
 ```rust
 use autostatemachine::{StateMachineBuilder, StateMachineContext, extractor::State};
@@ -53,9 +55,10 @@ client.stop();
 
 To use StateMachine, include it in your `Cargo.toml` file:
 
-tomlCopy code
 
-`[dependencies] autostatemachine = "0.1.0"`
+```toml
+[dependencies] autostatemachine = "0.1.0"
+```
 
 Make sure to replace `"0.1.0"` with the latest version of the crate.
 
@@ -193,7 +196,7 @@ fn main() {
 }
 ```
 
-#### Controlling Execution
+#### Controlling Execution With Lifecycle Methods
 
 ```rust
 // Assuming `client` has been initialized and started as above
